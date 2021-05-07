@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/scaleway/scaleway-sdk-go/api/rdb/v1"
+	mock "github.com/scaleway/terraform-provider-scaleway/scaleway/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -135,4 +138,55 @@ func TestValidationPrivilegePermission(t *testing.T) {
 	warnings, errors := validationPrivilegePermission()("none", "key")
 	assert.Empty(warnings)
 	assert.Empty(errors)
+}
+func TestResourceScalewayRdbPrivilegeRead(t *testing.T) {
+	// init
+	assert := assert.New(t)
+	ctrl := gomock.NewController(t)
+	meta, rdbAPI := NewMeta(ctrl)
+	data := NewTestResourceDataRawForResourceRDBPrivilege(t, "fr-srr/1111-11111111-111111111111")
+
+	// mocking
+	rdbAPI.ListPrivilegesReturnPrivilege("fr-srr")
+
+	// run
+	diags := resourceScalewayRdbPrivilegeRead(mock.NewMockContext(ctrl), data, meta)
+
+	// assertions
+	assert.Len(diags, 0)
+	assertResourcePrivilege(assert, data, "fr-srr")
+}
+
+func TestResourceScalewayRdbPrivilegeReadWithNonRegionalizedIDUseDefault(t *testing.T) {
+	// init
+	assert := assert.New(t)
+	ctrl := gomock.NewController(t)
+	meta, rdbAPI := NewMeta(ctrl)
+	data := NewTestResourceDataRawForResourceRDBPrivilege(t, "1111-11111111-111111111111")
+
+	// mocking
+	rdbAPI.ListPrivilegesReturnPrivilege("fr-par")
+
+	// run
+	diags := resourceScalewayRdbPrivilegeRead(mock.NewMockContext(ctrl), data, meta)
+
+	// assertions
+	assert.Len(diags, 0)
+	assertResourcePrivilege(assert, data, "fr-par")
+}
+
+func NewTestResourceDataRawForResourceRDBPrivilege(t *testing.T, uuid string) *schema.ResourceData {
+	raw := make(map[string]interface{})
+	raw["instance_id"] = uuid
+	raw["database_name"] = "dbname"
+	raw["user_name"] = "dbowner"
+	raw["permission"] = "all"
+	return schema.TestResourceDataRaw(t, resourceScalewayRdbPrivilege().Schema, raw)
+}
+
+func assertResourcePrivilege(assert *assert.Assertions, data *schema.ResourceData, region string) {
+	assert.Equal(fmt.Sprintf("%s/1111-11111111-111111111111", region), data.Get("instance_id"))
+	assert.Equal("dbname", data.Get("database_name"))
+	assert.Equal("dbowner", data.Get("user_name"))
+	assert.Equal(rdb.PermissionAll, rdb.Permission(data.Get("permission").(string)))
 }

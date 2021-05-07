@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	databaseName  string = "dbname"
-	databaseOwner string = "dbowner"
-	instanceID    string = "1111-11111111-111111111111"
+	DatabaseName  string = "dbname"
+	DatabaseOwner string = "dbowner"
+	InstanceID    string = "1111-11111111-111111111111"
 )
 
 type ListDatabasesRequestMatcher struct {
@@ -66,8 +66,8 @@ func (m DeleteDatabaseRequestMatcher) String() string {
 
 func NewTestDatabase() *rdb.Database {
 	db := rdb.Database{
-		Name:    databaseName,
-		Owner:   databaseOwner,
+		Name:    DatabaseName,
+		Owner:   DatabaseOwner,
 		Managed: true,
 		Size:    42,
 	}
@@ -81,8 +81,8 @@ func (m *MockRdbAPIInterface) CreateDatabaseMustReturnError() {
 func (m *MockRdbAPIInterface) CreateDatabaseMustReturnDB(expectedRegion string) {
 	matcher := CreateDatabaseRequestMatcher{
 		ExpectedRegion:       expectedRegion,
-		ExpectedInstanceID:   instanceID,
-		ExpectedDatabaseName: databaseName,
+		ExpectedInstanceID:   InstanceID,
+		ExpectedDatabaseName: DatabaseName,
 	}
 	m.EXPECT().CreateDatabase(matcher, gomock.Any()).Return(NewTestDatabase(), nil)
 }
@@ -92,8 +92,8 @@ func (m *MockRdbAPIInterface) ListDatabasesMustReturnError() {
 func (m *MockRdbAPIInterface) ListDatabasesMustReturnDB(expectedRegion string) {
 	matcher := ListDatabasesRequestMatcher{
 		ExpectedRegion:       expectedRegion,
-		ExpectedInstanceID:   instanceID,
-		ExpectedDatabaseName: databaseName,
+		ExpectedInstanceID:   InstanceID,
+		ExpectedDatabaseName: DatabaseName,
 	}
 	dbs := make([]*rdb.Database, 0)
 	dbs = append(dbs, NewTestDatabase())
@@ -111,8 +111,8 @@ func (m *MockRdbAPIInterface) DeleteDatabaseMustReturnError() {
 func (m *MockRdbAPIInterface) DeleteDatabaseReturnNil(expectedRegion string) {
 	matcher := DeleteDatabaseRequestMatcher{
 		ExpectedRegion:       expectedRegion,
-		ExpectedInstanceID:   instanceID,
-		ExpectedDatabaseName: databaseName,
+		ExpectedInstanceID:   InstanceID,
+		ExpectedDatabaseName: DatabaseName,
 	}
 	m.EXPECT().DeleteDatabase(matcher, gomock.Any()).Return(nil)
 }
@@ -140,4 +140,57 @@ func (m CreateDatabaseRequestMatcher) Matches(x interface{}) bool {
 
 func (m CreateDatabaseRequestMatcher) String() string {
 	return fmt.Sprintf("is equal to (%s, %s, %s)", m.ExpectedRegion, m.ExpectedInstanceID, m.ExpectedDatabaseName)
+}
+
+type ListPrivilegesRequestMatcher struct {
+	ExpectedRegion       string
+	ExpectedInstanceID   string
+	ExpectedDatabaseName string
+	ExpectedUserName     string
+}
+
+func (m ListPrivilegesRequestMatcher) Matches(x interface{}) bool {
+	req := x.(*rdb.ListPrivilegesRequest)
+
+	if req.Region.String() != m.ExpectedRegion {
+		return false
+	}
+	if req.InstanceID != m.ExpectedInstanceID {
+		return false
+	}
+	if *req.DatabaseName != m.ExpectedDatabaseName {
+		return false
+	}
+	if *req.UserName != m.ExpectedUserName {
+		return false
+	}
+	return true
+}
+
+func (m ListPrivilegesRequestMatcher) String() string {
+	return fmt.Sprintf("is equal to (%s, %s, %s, %s)", m.ExpectedRegion, m.ExpectedInstanceID, m.ExpectedDatabaseName, m.ExpectedUserName)
+}
+
+func (m *MockRdbAPIInterface) ListPrivilegesReturnPrivilege(expectedRegion string) {
+	matcher := ListPrivilegesRequestMatcher{
+		ExpectedRegion:       expectedRegion,
+		ExpectedInstanceID:   InstanceID,
+		ExpectedDatabaseName: DatabaseName,
+		ExpectedUserName:     DatabaseOwner,
+	}
+	privs := make([]*rdb.Privilege, 0)
+	privs = append(privs, NewTestPrivilege())
+	resp := rdb.ListPrivilegesResponse{
+		Privileges: privs,
+		TotalCount: 1,
+	}
+	m.EXPECT().ListPrivileges(matcher, gomock.Any()).Return(&resp, nil)
+}
+func NewTestPrivilege() *rdb.Privilege {
+	priv := rdb.Privilege{
+		Permission:   rdb.PermissionAll,
+		DatabaseName: DatabaseName,
+		UserName:     DatabaseOwner,
+	}
+	return &priv
 }

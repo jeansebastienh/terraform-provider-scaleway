@@ -79,13 +79,12 @@ func resourceScalewayRdbPrivilegeRead(ctx context.Context, d *schema.ResourceDat
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	instanceID, _ := d.GetOk("instance_id")
 
-	_, id, err := parseLocalizedID(instanceID.(string))
-	regionalID := instanceID
+	locality, instanceID, err := parseLocalizedID(d.Get("instance_id").(string))
 	if err != nil {
-		regionalID = datasourceNewRegionalizedID(instanceID, region)
-		id = instanceID.(string)
+		instanceID = d.Get("instance_id").(string)
+	} else {
+		region = scw.Region(locality)
 	}
 
 	dbName, _ := d.Get("database_name").(string)
@@ -93,7 +92,7 @@ func resourceScalewayRdbPrivilegeRead(ctx context.Context, d *schema.ResourceDat
 
 	res, err := rdbAPI.ListPrivileges(&rdb.ListPrivilegesRequest{
 		Region:       region,
-		InstanceID:   id,
+		InstanceID:   instanceID,
 		DatabaseName: &dbName,
 		UserName:     &userName,
 	}, scw.WithContext(ctx))
@@ -110,8 +109,7 @@ func resourceScalewayRdbPrivilegeRead(ctx context.Context, d *schema.ResourceDat
 	_ = d.Set("database_name", privilege.DatabaseName)
 	_ = d.Set("user_name", privilege.UserName)
 	_ = d.Set("permission", privilege.Permission)
-	//	d.SetId(regionalID.(string))
-	_ = d.Set("instance_id", regionalID)
+	_ = d.Set("instance_id", newRegionalIDString(region, instanceID))
 
 	return nil
 }
