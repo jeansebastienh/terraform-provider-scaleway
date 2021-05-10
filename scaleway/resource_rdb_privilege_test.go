@@ -175,6 +175,44 @@ func TestResourceScalewayRdbPrivilegeReadWithNonRegionalizedIDUseDefault(t *test
 	assertResourcePrivilege(assert, data, "fr-par")
 }
 
+func TestResourceScalewayRdbPrivilegeCreateWithoutRegionalIDReturnsExpectedResource(t *testing.T) {
+	// init
+	assert := assert.New(t)
+	ctrl := gomock.NewController(t)
+	meta, rdbAPI := NewMeta(ctrl)
+	data := NewTestResourceDataRawForResourceRDBPrivilege(t, "1111-11111111-111111111111")
+
+	// mocking
+	rdbAPI.SetPrivilegeRequest("fr-par")
+	rdbAPI.ListPrivilegesReturnPrivilege("fr-par")
+
+	// run
+	diags := resourceScalewayRdbPrivilegeCreate(mock.NewMockContext(ctrl), data, meta)
+
+	// assertions
+	assert.Len(diags, 0)
+	assertResourcePrivilege(assert, data, "fr-par")
+}
+
+func TestResourceScalewayRdbPrivilegeCreateWithRegionalIDReturnsExpectedResource(t *testing.T) {
+	// init
+	assert := assert.New(t)
+	ctrl := gomock.NewController(t)
+	meta, rdbAPI := NewMeta(ctrl)
+	data := NewTestResourceDataRawForResourceRDBPrivilege(t, "fr-srr/1111-11111111-111111111111")
+
+	// mocking
+	rdbAPI.SetPrivilegeRequest("fr-srr")
+	rdbAPI.ListPrivilegesReturnPrivilege("fr-srr")
+
+	// run
+	diags := resourceScalewayRdbPrivilegeCreate(mock.NewMockContext(ctrl), data, meta)
+
+	// assertions
+	assert.Len(diags, 0)
+	assertResourcePrivilege(assert, data, "fr-srr")
+}
+
 func NewTestResourceDataRawForResourceRDBPrivilege(t *testing.T, uuid string) *schema.ResourceData {
 	raw := make(map[string]interface{})
 	raw["instance_id"] = uuid

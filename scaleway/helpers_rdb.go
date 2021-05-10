@@ -71,3 +71,13 @@ func expandInstanceSettings(i interface{}) []*rdb.InstanceSetting {
 
 	return res
 }
+func extractRegionAndInstanceID(d *schema.ResourceData, m interface{}) (region scw.Region, instanceID string) {
+	locality, instanceID, err := parseLocalizedID(d.Get("instance_id").(string))
+	if err != nil {
+		region, _ = extractRegion(d, m.(*Meta))
+	} else {
+		region = scw.Region(locality)
+	}
+
+	return
+}

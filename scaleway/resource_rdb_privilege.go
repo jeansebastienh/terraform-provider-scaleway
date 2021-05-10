@@ -52,20 +52,18 @@ func resourceScalewayRdbPrivilege() *schema.Resource {
 }
 
 func resourceScalewayRdbPrivilegeCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	rdbAPI, region, err := rdbAPIWithRegion(d, meta)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	instanceID := d.Get("instance_id").(string)
+	rdbAPI := newRdbAPI(meta)
+	region, instanceID := extractRegionAndInstanceID(d, meta)
+
 	createReq := &rdb.SetPrivilegeRequest{
 		Region:       region,
-		InstanceID:   expandID(instanceID),
+		InstanceID:   instanceID,
 		DatabaseName: d.Get("database_name").(string),
 		UserName:     d.Get("user_name").(string),
 		Permission:   rdb.Permission(d.Get("permission").(string)),
 	}
 
-	_, err = rdbAPI.SetPrivilege(createReq, scw.WithContext(ctx))
+	_, err := rdbAPI.SetPrivilege(createReq, scw.WithContext(ctx))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -75,17 +73,8 @@ func resourceScalewayRdbPrivilegeCreate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceScalewayRdbPrivilegeRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	rdbAPI, region, err := rdbAPIWithRegion(d, meta)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	locality, instanceID, err := parseLocalizedID(d.Get("instance_id").(string))
-	if err != nil {
-		instanceID = d.Get("instance_id").(string)
-	} else {
-		region = scw.Region(locality)
-	}
+	rdbAPI := newRdbAPI(meta)
+	region, instanceID := extractRegionAndInstanceID(d, meta)
 
 	dbName, _ := d.Get("database_name").(string)
 	userName, _ := d.Get("user_name").(string)
@@ -115,26 +104,17 @@ func resourceScalewayRdbPrivilegeRead(ctx context.Context, d *schema.ResourceDat
 }
 
 func resourceScalewayRdbPrivilegeUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	rdbAPI, region, err := rdbAPIWithRegion(d, meta)
-
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	instanceID, _ := d.GetOk("instance_id")
-
-	_, id, err := parseLocalizedID(instanceID.(string))
-	if err != nil {
-		id = instanceID.(string)
-	}
+	rdbAPI := newRdbAPI(meta)
+	region, instanceID := extractRegionAndInstanceID(d, meta)
 
 	updateReq := &rdb.SetPrivilegeRequest{
 		Region:       region,
-		InstanceID:   id,
+		InstanceID:   instanceID,
 		DatabaseName: d.Get("database_name").(string),
 		UserName:     d.Get("user_name").(string),
 		Permission:   rdb.Permission(d.Get("permission").(string)),
 	}
-	_, err = rdbAPI.SetPrivilege(updateReq, scw.WithContext(ctx))
+	_, err := rdbAPI.SetPrivilege(updateReq, scw.WithContext(ctx))
 	if err != nil && !is404Error(err) {
 		return diag.FromErr(err)
 	}

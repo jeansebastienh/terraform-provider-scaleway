@@ -171,6 +171,49 @@ func (m ListPrivilegesRequestMatcher) String() string {
 	return fmt.Sprintf("is equal to (%s, %s, %s, %s)", m.ExpectedRegion, m.ExpectedInstanceID, m.ExpectedDatabaseName, m.ExpectedUserName)
 }
 
+type SetPrivilegeRequestMatcher struct {
+	ExpectedRegion       string
+	ExpectedInstanceID   string
+	ExpectedDatabaseName string
+	ExpectedUserName     string
+	ExpectedPermission   string
+}
+
+func (m SetPrivilegeRequestMatcher) Matches(x interface{}) bool {
+	req := x.(*rdb.SetPrivilegeRequest)
+
+	if req.Region.String() != m.ExpectedRegion {
+		return false
+	}
+	if req.InstanceID != m.ExpectedInstanceID {
+		return false
+	}
+	if req.DatabaseName != m.ExpectedDatabaseName {
+		return false
+	}
+	if req.UserName != m.ExpectedUserName {
+		return false
+	}
+	if req.Permission.String() != m.ExpectedPermission {
+		return false
+	}
+	return true
+}
+
+func (m SetPrivilegeRequestMatcher) String() string {
+	return fmt.Sprintf("is equal to (%s, %s, %s, %s, %s)", m.ExpectedRegion, m.ExpectedInstanceID, m.ExpectedDatabaseName, m.ExpectedUserName, m.ExpectedPermission)
+}
+
+func (m *MockRdbAPIInterface) SetPrivilegeRequest(expectedRegion string) {
+	matcher := SetPrivilegeRequestMatcher{
+		ExpectedRegion:       expectedRegion,
+		ExpectedInstanceID:   InstanceID,
+		ExpectedDatabaseName: DatabaseName,
+		ExpectedUserName:     DatabaseOwner,
+		ExpectedPermission:   "all",
+	}
+	m.EXPECT().SetPrivilege(matcher, gomock.Any()).Return(nil, nil)
+}
 func (m *MockRdbAPIInterface) ListPrivilegesReturnPrivilege(expectedRegion string) {
 	matcher := ListPrivilegesRequestMatcher{
 		ExpectedRegion:       expectedRegion,
