@@ -9,9 +9,8 @@ description: |-
 Create and manage Scaleway RDB database privilege.
 For more information, see [the documentation](https://developers.scaleway.com/en/products/rdb/api).
 
-## Examples
+## Example usage
 
-### Basic
 
 ```hcl
 resource "scaleway_rdb_privilege" "priv" {
@@ -22,7 +21,7 @@ resource "scaleway_rdb_privilege" "priv" {
 }
 ```
 
-## Arguments Reference
+## Argument Reference
 
 The following arguments are supported:
 
@@ -32,4 +31,14 @@ The following arguments are supported:
 
 - `database_name` - (Required) Name of the database (e.g. `my-db-name`).
 
-- `permission` - (Required) Permission to set (readonly, readwrite, all, custom and none).
+- `permission` - (Required) Permission to set. Valid values are `readonly`, `readwrite`, `all`, `custom` and `none`).
+
+## Attributes Reference
+
+- `instance_id` - See Argument Reference above.
+
+- `user_name` - See Argument Reference above.
+
+- `database_name` - See Argument Reference above.
+
+- `permission` - See Argument Reference above.
